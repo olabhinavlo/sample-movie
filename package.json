@@ -1,0 +1,14 @@
+{
+  "name": "sync-cinema",
+  "version": "1.0.0",
+  "description": "Real-time synchronized video playback room for couples and friends using native Bun.serve WebSockets.",
+  "main": "server.ts",
+  "scripts": {
+    "start": "bun run server.ts",
+    "dev": "bun --watch server.ts"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "@types/bun": "latest"
+  }
+}
