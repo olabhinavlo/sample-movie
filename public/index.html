@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SyncCinema - Watch Movies Together in Perfect Real-Time Sync</title>
+  <meta name="description" content="Watch your favorite videos and movies with friends or partners in perfect synchronization. Features built-in real-time chat, member listings, and instant controls.">
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+
+  <!-- App Header -->
+  <header>
+    <div class="header-left">
+      <div class="logo">
+        <span class="logo-icon">🎬</span>
+        <span>SyncCinema</span>
+      </div>
+      
+      <!-- Room Code & Sharing (Visible in Theatre) -->
+      <div class="room-badge-container" id="room-badge-header" style="display: none;">
+        <div class="room-code-tag" id="btn-copy-link" title="Click to copy sharing link">
+          <span>ROOM: <strong id="display-room-code" style="color: var(--accent-cyan);">------</strong></span>
+          <span class="badge-icon">🔗</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Center Section: Sync & Presets (Visible in Theatre) -->
+    <div class="header-center" id="video-controls-header" style="display: none;">
+      <form id="form-change-video" class="header-source-form">
+        <input type="url" id="input-video-url" placeholder="Paste standard URL or YouTube URL..." required>
+        <button type="submit" class="btn btn-primary btn-sm">Sync URL</button>
+      </form>
+      
+      <div class="presets-dropdown-container">
+        <button id="btn-presets-toggle" class="btn btn-sm">
+          🍿 Presets
+        </button>
+        <div class="presets-dropdown-menu" id="presets-dropdown">
+          <span class="dropdown-label">🎬 Recommended Movies & Trailers:</span>
+          <div class="presets-grid" id="presets-wrapper">
+            <button class="preset-chip active" data-url="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4" data-title="Sintel (Open Movie Project)">Sintel</button>
+            <button class="preset-chip" data-url="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4" data-title="Big Buck Bunny">Big Buck Bunny</button>
+            <button class="preset-chip" data-url="https://www.youtube.com/watch?v=a0HH7GifdM4" data-title="SDF Application (YouTube Video)">SDF Application (YouTube)</button>
+            <button class="preset-chip" data-url="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/SubaruOutbackOnStreetAndDirt.mp4" data-title="Cinematic Nature B-Roll">Nature B-Roll</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Section: Profile, Call Toggle & Leave (Visible in Theatre) -->
+    <div class="header-right">
+      <button id="btn-toggle-call" class="btn btn-sm btn-cyan" style="display: none; padding: 0.35rem 0.8rem; font-weight: 700;">
+        📞 Join Call
+      </button>
+      <div id="user-profile-header" class="user-profile-tag" style="display: none;">
+        <span class="status-dot-active"></span>
+        <span id="display-username-header">Guest</span>
+      </div>
+      <button id="btn-leave-room" class="btn btn-sm btn-outline" style="display: none;">
+        Leave
+      </button>
+    </div>
+  </header>
+
+  <!-- Main View Router -->
+  <main>
+    
+    <!-- 1. Landing Screen (Create / Join Room) -->
+    <section id="landing-page" class="page active">
+      <div class="glass-card">
+        <h1 class="landing-title">Watch Together</h1>
+        <p class="landing-subtitle">Create a room and watch synced videos with friends or partners in real-time.</p>
+        
+        <!-- Onboarding Nickname -->
+        <div class="form-group">
+          <label for="input-nickname">Choose Nickname</label>
+          <div class="input-glow-container">
+            <input type="text" id="input-nickname" placeholder="e.g., Romeo, Juliet, Buddy" required autocomplete="off">
+          </div>
+        </div>
+
+        <div class="action-row">
+          <!-- Room Action Choice -->
+          <button id="btn-create-room" class="btn btn-primary">
+            🚀 Create a New Watch Room
+          </button>
+          
+          <div class="or-divider">
+            <span>OR</span>
+          </div>
+
+          <div class="form-group" style="margin-bottom: 0.8rem;">
+            <label for="input-room-code">Enter Room Code</label>
+            <input type="text" id="input-room-code" placeholder="e.g., AX4T8Y" autocomplete="off" style="text-align: center; text-transform: uppercase; font-family: var(--font-accent);">
+          </div>
+
+          <button id="btn-join-room" class="btn btn-cyan">
+            ✨ Join watch room
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- 2. Synchronized Theatre Screen -->
+    <section id="theatre-page" class="page">
+      <div class="theatre-container">
+        
+        <!-- Left Video Side (Maximizes remaining page space) -->
+        <div class="video-section">
+          
+          <!-- Screen Player Box -->
+          <div class="player-container" id="player-container">
+            <div class="ambient-glow" id="glow-layer"></div>
+            
+            <!-- Player A: HTML5 Video Tag (No native controls!) -->
+            <video id="shared-video" crossorigin="anonymous" playsinline preload="auto">
+              Your browser does not support HTML5 video playback.
+            </video>
+
+            <!-- Centered Play/Pause Splash Ripple Overlay -->
+            <div class="center-ripple-overlay" id="center-ripple-overlay">
+              <svg class="ripple-play" viewBox="0 0 24 24" style="display:none;"><path d="M8 5v14l11-7z"/></svg>
+              <svg class="ripple-pause" viewBox="0 0 24 24" style="display:none;"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+            </div>
+
+            <!-- Professional Custom Video Controls Bar -->
+            <div class="custom-video-controls" id="custom-video-controls">
+              <!-- Timeline Scrubber -->
+              <div class="timeline-container" id="timeline-container">
+                <div class="timeline-slider">
+                  <div class="buffered-progress" id="buffered-progress"></div>
+                  <div class="current-progress" id="current-progress"></div>
+                  <div class="playhead" id="playhead"></div>
+                </div>
+              </div>
+              
+              <!-- Bottom Row Controls -->
+              <div class="controls-row">
+                <div class="controls-left">
+                  <!-- Play/Pause Button -->
+                  <button class="control-btn" id="ctrl-play-pause" title="Play (Spacebar)">
+                    <svg class="play-icon" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                    <svg class="pause-icon" viewBox="0 0 24 24" style="display:none;"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+                  </button>
+                  
+                  <!-- Volume Control Block -->
+                  <div class="volume-block">
+                    <button class="control-btn" id="ctrl-volume" title="Mute/Unmute">
+                      <svg class="vol-high-icon" viewBox="0 0 24 24"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg>
+                      <svg class="vol-mute-icon" viewBox="0 0 24 24" style="display:none;"><path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.21.05-.42.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z"/></svg>
+                    </button>
+                    <input type="range" class="volume-slider" id="ctrl-volume-slider" min="0" max="1" step="0.05" value="1">
+                  </div>
+                  
+                  <!-- Time Tracker Display -->
+                  <div class="time-tracker">
+                    <span id="ctrl-current-time">0:00</span>
+                    <span class="time-separator">/</span>
+                    <span id="ctrl-total-duration">0:00</span>
+                  </div>
+                </div>
+                
+                <div class="controls-right">
+                  <!-- Playback Speed Picker -->
+                  <div class="speed-picker-container">
+                    <button class="control-btn" id="ctrl-speed-btn" title="Playback Speed">1.0x</button>
+                    <div class="speed-menu" id="ctrl-speed-menu">
+                      <button data-speed="0.5">0.5x</button>
+                      <button data-speed="1.0" class="active">1.0x</button>
+                      <button data-speed="1.25">1.25x</button>
+                      <button data-speed="1.5">1.5x</button>
+                      <button data-speed="2.0">2.0x</button>
+                    </div>
+                  </div>
+                  
+                  <!-- Fullscreen Button -->
+                  <button class="control-btn" id="ctrl-fullscreen" title="Cinema Mode Fullscreen">
+                    <svg viewBox="0 0 24 24"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Player B: YouTube IFrame API Target Element -->
+            <div id="yt-player" style="display: none;"></div>
+
+            <!-- Dynamic Coordinated Buffering Overlay -->
+            <div class="buffering-overlay" id="buffering-overlay">
+              <div class="buffer-spinner"></div>
+              <span id="buffer-overlay-text">Waiting for partner to buffer...</span>
+            </div>
+
+            <!-- WebRTC webcam cards will be appended directly inside player-container for drag freedom -->
+
+            <!-- Floating WebRTC Call Mute/Unmute Controls -->
+            <div class="call-controls-overlay" id="call-controls-overlay">
+              <button class="call-btn active" id="btn-toggle-mic" title="Toggle Mic">🎙️</button>
+              <button class="call-btn active" id="btn-toggle-cam" title="Toggle Camera">📷</button>
+              <button class="call-btn btn-hangup" id="btn-hangup" title="Leave Call">🚫</button>
+            </div>
+          </div>
+
+          <!-- Compact Bottom Status & Diagnostics -->
+          <div class="status-bar-bottom">
+            <div class="now-playing-info">
+              <span class="playing-icon">🎥</span>
+              <span class="playing-label">Now Playing:</span>
+              <strong id="display-video-title">Loading movie...</strong>
+            </div>
+            
+            <div class="diagnostics-info">
+              <div class="diag-status">
+                <span class="status-dot" id="ws-status-dot"></span>
+                <span id="ws-status-text">Connected</span>
+              </div>
+              <span class="diag-divider">|</span>
+              <div id="sync-lag-indicator" style="margin-right: 0.5rem;">Lag: 0.0s</div>
+              <button id="btn-fullscreen-toggle" class="btn btn-sm" title="Toggle Fullscreen" style="border-radius: 50%; width: 30px; height: 30px; padding: 0; background: rgba(255, 255, 255, 0.04); border-color: var(--border-glass);">
+                📺
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right Side Sidebar (Users & Chat) -->
+        <div class="sidebar">
+          
+          <!-- Shared Room Folder -->
+          <div class="folder-card">
+            <div class="folder-header">
+              <div class="folder-title">📁 Shared Room Folder</div>
+              <label for="input-file-upload" class="btn btn-sm btn-cyan" style="font-size: 0.72rem; padding: 0.2rem 0.5rem; cursor: pointer; border-radius: 12px;">
+                📤 Share File
+              </label>
+              <input type="file" id="input-file-upload" accept="video/*" style="display: none;">
+            </div>
+            <div class="upload-progress-bar-container" id="upload-progress-container">
+              <div class="upload-progress-bar" id="upload-progress-bar"></div>
+            </div>
+            <div class="folder-files-list" id="room-files-list">
+              <div class="empty-folder-message">No files shared yet. Share a local video!</div>
+            </div>
+          </div>
+
+          <!-- Live Chat Drawer -->
+          <div class="chat-card">
+            <div class="chat-header">
+              <div class="chat-header-title">💬 Live Theatre Chat</div>
+              <div class="active-viewers-badge">
+                👥 <span id="user-count">0</span>
+              </div>
+            </div>
+
+            <!-- Horizontal Scrollable Viewer Drawer -->
+            <div class="viewers-drawer" id="viewers-list">
+              <!-- Dynamically populated user tags -->
+            </div>
+            
+            <div class="chat-messages" id="chat-messages-container">
+              <!-- Messages show up here -->
+            </div>
+
+            <form id="chat-input-form" class="chat-input-form">
+              <input type="text" id="chat-input" placeholder="Type a message..." required autocomplete="off">
+              <button type="submit" id="btn-send-chat">
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
+                  <path d="M15.854.146a.5.5 0 0 1 .11.525l-5.5 15a.5.5 0 0 1-.92-.015l-3.385-7.619-7.619-3.385a.5.5 0 0 1-.015-.92l15-5.5a.5.5 0 0 1 .525.11z"/>
+                </svg>
+              </button>
+            </form>
+          </div>
+
+        </div>
+
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Toast Notification Overlay -->
+  <div class="toast" id="toast-message">Copied room link successfully!</div>
+
+  <!-- JavaScript Client Core -->
+  <script src="/client.js"></script>
+</body>
+</html>
